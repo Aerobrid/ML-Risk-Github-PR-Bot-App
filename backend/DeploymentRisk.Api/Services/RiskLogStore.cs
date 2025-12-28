@@ -4,7 +4,7 @@ namespace DeploymentRisk.Api.Services;
 
 public class RiskLogStore
 {
-    // TEMP in-memory store (will swap with DB later)
+    // TEMP in-memory store 
     private static readonly List<RiskResponse> _logs = new();
 
     public void Add(RiskResponse response)

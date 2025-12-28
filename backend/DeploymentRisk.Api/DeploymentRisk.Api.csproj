@@ -9,6 +9,22 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+
+    <!-- GitHub Integration -->
+    <PackageReference Include="Octokit" Version="13.0.1" />
+    <PackageReference Include="GitHubJwt" Version="0.0.6" />
+
+    <!-- Database -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1" />
+
+    <!-- Background Processing -->
+    <PackageReference Include="System.Threading.Channels" Version="10.0.0" />
+
+    <!-- JWT Authentication -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+    <PackageReference Include="DotNetEnv" Version="3.1.0" />
   </ItemGroup>
 
 </Project>

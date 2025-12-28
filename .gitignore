@@ -1,0 +1,32 @@
+# Environment variables
+.env
+
+# GitHub App private key (make sure it is in the root folder)
+secrets/
+*.pem
+
+# Build artifacts
+**/bin/
+**/obj/
+**/dist/
+**/node_modules/
+**/.angular/
+appsettings.json
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

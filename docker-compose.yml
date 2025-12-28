@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend/DeploymentRisk.Api
+      dockerfile: Dockerfile
+    container_name: risk-backend
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - GitHub__AppId=${GITHUB_APP_ID}
+      - GitHub__PrivateKeyPath=/app/secrets/github-app.pem
+      - GitHub__WebhookSecret=${GITHUB_WEBHOOK_SECRET}
+      - Database__ConnectionString=${SQL_CONNECTION_STRING}
+      - MLService__BaseUrl=http://ml-service:8000
+    volumes:
+      - ./secrets:/app/secrets:ro
+    depends_on:
+      - ml-service
+      - sqlserver
+    networks:
+      - risk-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/deployment-risk-ui
+      dockerfile: Dockerfile
+    container_name: risk-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - risk-network
+    restart: unless-stopped
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: risk-ml-service
+    ports:
+      - "8000:8000"
+    networks:
+      - risk-network
+    restart: unless-stopped
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: risk-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - risk-network
+    restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${SQL_SA_PASSWORD}" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+networks:
+  risk-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
