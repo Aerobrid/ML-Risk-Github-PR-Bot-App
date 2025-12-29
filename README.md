@@ -2,15 +2,15 @@
 
 A lightweight platform that analyzes code changes and posts risk assessments to pull requests. It consists of three main components:
 
-- Backend (`backend/DeploymentRisk.Api`): .NET 10 Web API that handles GitHub App authentication, webhooks, model management, and risk scoring.
-- Frontend (`frontend/deployment-risk-ui`): Angular UI for browsing repositories, models, and the dashboard.
-- ML service (`ml-service`): FastAPI Python service used to host, train, upload, and serve ML models for risk scoring.
+- Backend (`backend/DeploymentRisk.Api`): .NET 10 Web API that handles GitHub App authentication, webhooks, model management, and risk scoring
+- Frontend (`frontend/deployment-risk-ui`): Angular UI for browsing repositories, models, and the dashboard
+- ML service (`ml-service`): FastAPI Python service used to host, train, and serve ML models for risk scoring
 
 ## Goals
 
 - Create neat personal PR assistant
-- Learn about GitHub webhooks and run risk assessments on PRs.
-- Allow local and containerized development of the backend, frontend, and ML service through docker-compose.
+- Learn about GitHub webhooks and run risk assessments on PRs
+- Allow local and containerized development of the backend, frontend, and ML service through docker-compose
 - Train ML model for Risk Score analysis/prediction
 - Learn about Angular + ASP.NET Core in the process
 
@@ -22,11 +22,11 @@ A lightweight platform that analyzes code changes and posts risk assessments to 
 
 ## Repository Layout
 
-- `backend/DeploymentRisk.Api` — .NET 10 API project (Program.cs, Controllers, Services, Data).
-- `frontend/deployment-risk-ui` — Angular front-end app.
-- `ml-service` — FastAPI app with training scripts and model management.
-- `docker-compose.yml` — compose file to run components together.
-- `secrets/` — local secrets directory (not checked in by default).
+- `backend/DeploymentRisk.Api` — .NET 10 API project (Program.cs, Controllers, Services, Data)
+- `frontend/deployment-risk-ui` — Angular front-end app
+- `ml-service` — FastAPI app with training scripts and model management
+- `docker-compose.yml` — compose file to run components together
+- `secrets/` — local secrets directory (not checked in by default)
 
 ## Prerequisites
 
@@ -154,18 +154,15 @@ CAUTION: If you get `Octokit.ForbiddenException: Resource not accessible by inte
 
 The backend uses EF Core with a SQL Server provider by default. For local development you can:
 
-- Provide `Database__ConnectionString` via `.env` to point at a SQL Server instance (Docker, Azure, or local).
-- If migrations fail at startup, the app falls back to `EnsureCreated()` to create the database schema automatically for development.
+- Provide `Database__ConnectionString` via `.env` to point at a SQL Server instance (Docker, Azure, or local)
+- If migrations fail at startup, the app falls back to `EnsureCreated()` to create the database schema automatically for development
 
 ## Troubleshooting
 
 - Private key not found / parse errors:
-  - Ensure `GitHub__PrivateKeyPath` points to a valid PEM file and the process can read it.
-  - Verify the file is PEM format (starts with `-----BEGIN PRIVATE KEY-----`).
-  - Can be because of no CRLF (carriage return line feeds) separatring header, body, and footer
-
-- Swagger multipart upload errors:
-  - Use the `MLModelsController` Swagger UI form or call the ML service directly at `/models/upload`.
+  - Ensure `GitHub__PrivateKeyPath` points to a valid PEM file and the process can read it
+  - Verify the file is PEM format (starts with `-----BEGIN PRIVATE KEY-----`)
+  - Can be because of no CRLF (carriage return line feeds) separating header, body, and footer
 
 - ML service errors:
   - Start `uvicorn` without `--reload` for stable testing.
