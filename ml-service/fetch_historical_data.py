@@ -79,7 +79,7 @@ def fetch_data(repo_name, limit=500):
 
     df = pd.DataFrame(data)
     
-    # If we didn't find many "risky" ones via heuristics, we might need to manually adjust
+    # If we didn't find many "risky" ones via heuristics, you could manually adjust
     # or rely on the distribution (Anomaly Detection)
     # normalize risk based on complexity if 'is_risky' is all 0
     if df['risk_score'].sum() == 0:

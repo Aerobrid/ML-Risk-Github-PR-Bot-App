@@ -57,14 +57,21 @@ It will generate 10,000 synthetic samples to initialize the model with basic heu
 
 ## 4. Deploying/Swapping Models
 
-The ML Service supports hot-swapping models via API.
+Model management via the ML service HTTP API is disabled in this distribution to avoid
+accidental model swaps in development or production. Use the CLI training workflow below
+and deploy model files directly to the `models/` directory if you need to swap files manually.
 
-### Upload a new model
+Recommended CLI workflow:
+
+1. Train or retrain the model:
 ```bash
-curl -X POST -F "file=@models/my_rf_model.pkl" http://localhost:8000/models/upload
+cd ml-service
+python train_xgboost_model.py
 ```
 
-### Load a model
-```bash
-curl -X POST "http://localhost:8000/models/my_rf_model.pkl/load"
-```
+2. After training the script will write models into `ml-service/models/` (for local runs)
+    or `models/` depending on how you run the service. Copy the resulting files to the
+    running service's models directory if needed and restart the ML service.
+
+If you need an API-based model management workflow later, consider re-enabling the
+endpoints behind authentication and admin-only controls.

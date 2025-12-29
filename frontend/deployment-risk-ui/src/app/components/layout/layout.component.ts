@@ -1,5 +1,6 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, RouterOutlet, Router, RouterLinkActive } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -74,7 +75,7 @@ import { AuthService } from '../../services/auth.service';
             <p>Deployment Risk Platform - Automated PR & Push Risk Assessment</p>
             <div class="flex gap-6">
               <a href="https://github.com" target="_blank" class="hover:text-gray-900">GitHub</a>
-              <a href="/swagger" target="_blank" class="hover:text-gray-900">API Docs</a>
+              <a [href]="swaggerUrl" target="_blank" class="hover:text-gray-900">API Docs</a>
             </div>
           </div>
         </div>
@@ -86,7 +87,15 @@ export class LayoutComponent {
   protected readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
+  // go to actual swagger endpoint (on port 5000)
+  protected readonly swaggerUrl = ((): string => {
+    const api = environment.apiUrl ?? '';
+    const base = api.replace(/\/api\/?$/i, '');
+    return base.endsWith('/') ? base + 'swagger' : base + '/swagger';
+  })();
+
   protected logout(): void {
     this.authService.logout();
   }
 }
+

@@ -10,9 +10,12 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 model_manager = ModelManager.get_instance()
 scanner = get_scanner()
+DISABLED_MSG = (
+    "Model management via API is disabled in this deployment. "
+    "Train and manage models via the CLI: cd ml-service && python train_xgboost_model.py"
+)
 
 def calculate_rule_based_score(request: RiskRequest) -> tuple[float, dict]:
-    """Fallback logic if no ML model is loaded"""
     score = 0.0
     details = {}
 
@@ -71,7 +74,6 @@ def predict(request: RiskRequest):
     
     # If a swappable analysis model is loaded, we could use it here
     if model_manager.analysis_model:
-        # Placeholder for how an uploaded analysis model might be used
         # For now, we just note that it's active
         details["analysis_model"] = model_manager.analysis_model_name or "active"
 
@@ -94,66 +96,70 @@ def predict(request: RiskRequest):
 
 @router.get("/models", response_model=list[ModelInfo])
 def list_models():
-    return model_manager.list_models()
+    # Endpoint commented out to prevent API-based model management.
+    # The original implementation is preserved below for reference.
+    #
+    # return model_manager.list_models()
+    #
+    # raise HTTPException(status_code=403, detail=DISABLED_MSG)
+    pass
 
 @router.post("/models/upload")
 async def upload_model(file: UploadFile = File(...), name: Optional[str] = None):
-    try:
-        filename = f"{name}_{file.filename}" if name else file.filename
-        # Ensure models dir exists
-        os.makedirs(model_manager.models_dir, exist_ok=True)
-        file_path = os.path.join(model_manager.models_dir, filename)
-
-        contents = await file.read()
-        with open(file_path, "wb") as buffer:
-            buffer.write(contents)
-
-        # Auto-load: prefer risk model if named accordingly, otherwise try analysis model
-        if filename == "dummy_risk_model.pkl":
-            model_manager.load_risk_model(filename)
-        else:
-            # best-effort: try to load as analysis model
-            model_manager.load_analysis_model(filename)
-
-        return {"message": f"Model uploaded: {filename}", "filename": filename}
-    except Exception as e:
-        logger.exception("Failed to upload model")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Endpoint commented out to prevent API-based model uploads.
+    # Original implementation (preserved for reference):
+    # try:
+    #     filename = f"{name}_{file.filename}" if name else file.filename
+    #     os.makedirs(model_manager.models_dir, exist_ok=True)
+    #     file_path = os.path.join(model_manager.models_dir, filename)
+    #     contents = await file.read()
+    #     with open(file_path, "wb") as buffer:
+    #         buffer.write(contents)
+    #     if filename == "dummy_risk_model.pkl":
+    #         model_manager.load_risk_model(filename)
+    #     else:
+    #         model_manager.load_analysis_model(filename)
+    #     return {"message": f"Model uploaded: {filename}", "filename": filename}
+    # except Exception as e:
+    #     logger.exception("Failed to upload model")
+    #     raise HTTPException(status_code=500, detail=str(e))
+    pass
 
 
 @router.delete("/models/{filename}")
 def delete_model(filename: str):
-    # Protect built-in/default risk model from accidental deletion
-    if filename == "dummy_risk_model.pkl":
-        raise HTTPException(status_code=403, detail="Cannot delete built-in risk model")
-
-    path = os.path.join(model_manager.models_dir, filename)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Model not found")
-
-    try:
-        os.remove(path)
-        # If we just removed the active analysis model, clear it
-        if getattr(model_manager, "analysis_model_name", None) == filename:
-            model_manager.analysis_model = None
-            model_manager.analysis_model_name = None
-        return {"message": f"Deleted {filename}"}
-    except Exception as e:
-        logger.exception("Failed to delete model")
-        raise HTTPException(status_code=500, detail=str(e))
+    # Endpoint commented out to prevent API-based model deletion.
+    # Original implementation (preserved for reference):
+    # if filename == "dummy_risk_model.pkl":
+    #     raise HTTPException(status_code=403, detail="Cannot delete built-in risk model")
+    # path = os.path.join(model_manager.models_dir, filename)
+    # if not os.path.exists(path):
+    #     raise HTTPException(status_code=404, detail="Model not found")
+    # try:
+    #     os.remove(path)
+    #     if getattr(model_manager, "analysis_model_name", None) == filename:
+    #         model_manager.analysis_model = None
+    #         model_manager.analysis_model_name = None
+    #     return {"message": f"Deleted {filename}"}
+    # except Exception as e:
+    #     logger.exception("Failed to delete model")
+    #     raise HTTPException(status_code=500, detail=str(e))
+    pass
 
 @router.post("/models/{filename}/load")
 def load_model(filename: str):
-    if filename == "dummy_risk_model.pkl":
-        if model_manager.load_risk_model(filename):
-            return {"message": "Risk model reloaded"}
-        else:
-            raise HTTPException(status_code=404, detail="Risk model not found")
-            
-    if model_manager.load_analysis_model(filename):
-        return {"message": f"Analysis model {filename} loaded and active"}
-    else:
-        raise HTTPException(status_code=404, detail="Model not found or failed to load")
+    # Endpoint commented out to prevent API-based model loading.
+    # Original implementation (preserved for reference):
+    # if filename == "dummy_risk_model.pkl":
+    #     if model_manager.load_risk_model(filename):
+    #         return {"message": "Risk model reloaded"}
+    #     else:
+    #         raise HTTPException(status_code=404, detail="Risk model not found")
+    # if model_manager.load_analysis_model(filename):
+    #     return {"message": f"Analysis model {filename} loaded and active"}
+    # else:
+    #     raise HTTPException(status_code=404, detail="Model not found or failed to load")
+    pass
 
 @router.post("/security/scan", response_model=SecurityScanResponse)
 def security_scan(request: SecurityScanRequest):
@@ -171,4 +177,4 @@ def security_scan(request: SecurityScanRequest):
 
 @router.get("/health")
 def health():
-    return {"status": "healthy", "version": "2.1 (XGBoost + Scanner)"}
+    return {"status": "healthy", "version": "2.1 (XGBoost)"}
