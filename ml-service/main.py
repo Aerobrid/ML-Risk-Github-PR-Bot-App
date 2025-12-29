@@ -6,6 +6,7 @@ import shutil
 
 app = FastAPI(title="ML Risk Service")
 
+# models dir for trained models
 MODELS_DIR = "models"
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -67,9 +68,9 @@ def calculate_risk_score(request: RiskRequest) -> Tuple[float, Dict[str, float]]
 
     return score, details
 
+# Predict deployment risk based on metrics
 @app.post("/predict", response_model=RiskResponse)
 def predict(request: RiskRequest):
-    """Predict deployment risk based on metrics"""
     score, details = calculate_risk_score(request)
 
     # Determine risk level
@@ -92,7 +93,7 @@ def predict(request: RiskRequest):
 async def upload_model(file: UploadFile = File(...), name: Optional[str] = None, type: str = "ml-model"):
     """
     Upload a trained ML model file.
-    In a real app, this would load the model into memory.
+    - Currently not tested
     """
     try:
         filename = f"{name}_{file.filename}" if name else file.filename
@@ -123,7 +124,7 @@ def health():
 def security_scan(request: Optional[SecurityScanRequest] = None):
     """
     Simulated security scan. 
-    In a real app, this would use tools like Bandit, Semgrep, or CodeQL.
+    - Use tools like Bandit, Semgrep, or CodeQL in future
     """
     vulnerabilities = []
     

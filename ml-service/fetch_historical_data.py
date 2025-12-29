@@ -80,8 +80,8 @@ def fetch_data(repo_name, limit=500):
     df = pd.DataFrame(data)
     
     # If we didn't find many "risky" ones via heuristics, we might need to manually adjust
-    # or rely on the distribution (Anomaly Detection).
-    # For now, let's normalize risk based on complexity if 'is_risky' is all 0.
+    # or rely on the distribution (Anomaly Detection)
+    # normalize risk based on complexity if 'is_risky' is all 0
     if df['risk_score'].sum() == 0:
         logger.info("No obvious 'Reverts' found. Using complexity metrics as risk proxy.")
         # Normalize lines_changed to 0-1
