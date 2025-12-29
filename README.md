@@ -8,16 +8,17 @@ A lightweight platform that analyzes code changes and posts risk assessments to 
 
 ## Goals
 
-- Receive GitHub webhooks and run risk assessments on PRs.
-- Allow local and containerized development of the backend, frontend, and ML service.
-- Include Machine learning models
-- Keep codebase noncluttered
+- Create neat personal PR assistant
+- Learn about GitHub webhooks and run risk assessments on PRs.
+- Allow local and containerized development of the backend, frontend, and ML service through docker-compose.
+- Train ML model for Risk Score analysis/prediction
+- Learn about Angular + ASP.NET Core in the process
 
 ## Exclaimers
 
-- More information/troubleshooting readme's can be found in frontend, backend, and ml-service folders of app
-- Thorough SQL Database connection testruns have not occured currently
-- Dependency conflicts may occur for newer packages (especially for reading through private .pem keys)
+- More specific readme's can be found in frontend, backend, and ml-service folders of app
+- Dependency conflicts may occur for newer packages
+- LLM configuration through API key has not been thoroughly tested
 
 ## Repository Layout
 
@@ -29,12 +30,12 @@ A lightweight platform that analyzes code changes and posts risk assessments to 
 
 ## Prerequisites
 
-- .NET 10 SDK (dotnet) for backend development.
-- Python 3.10+ with pip for the ML service.
-- Node.js 18+ and npm for the frontend.
-- Docker & Docker Compose (optional, recommended for running full stack).
+- .NET 10 SDK (dotnet) for backend development
+- Python 3.10+ with pip for the ML service
+- Node.js 18+ and npm for the frontend
+- Docker & Docker Compose (optional, recommended for running full stack)
 - Angular framework installed
-- ngrok for local testing
+- ngrok for local testing by tunneling your localhost -> online web
 
 ## Quickstart — Local (recommended for development)
 
@@ -88,7 +89,7 @@ docker-compose up --build
 
 - `GitHub__AppId` — your GitHub App ID
 - `GitHub__InstallationId` — installation id for the app
-- `GitHub__PrivateKeyPath` — path to the PEM private key. When running locally, prefer `./secrets/github-app.pem` and ensure `SECRETS.md` is followed to keep it out of git.
+- `GitHub__PrivateKeyPath` — path to the PEM private key. When running locally, this is common: `./secrets/github-app.pem`
 - `ML__ServiceUrl` — URL for ML service (default `http://localhost:8000`)
 
 ## Docker / Compose note about DB host

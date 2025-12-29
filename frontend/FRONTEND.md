@@ -43,7 +43,6 @@ Building for production
 
 ```bash
 npm run build
-# output in dist/ directory
 ```
 
 Running with a proxy (optional)
