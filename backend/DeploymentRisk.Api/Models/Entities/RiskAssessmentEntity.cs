@@ -18,7 +18,7 @@ public class RiskAssessmentEntity
     public double? BugScore { get; set; }
 
     // Metadata
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
     public string? GitHubCommentUrl { get; set; }
     public string Author { get; set; } = string.Empty;
 

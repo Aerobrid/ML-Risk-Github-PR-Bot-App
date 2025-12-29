@@ -130,7 +130,7 @@ public class WebhookHandler
         }
 
         // Save to DB (if configured)
-        var entity = new RiskAssessmentEntity
+            var entity = new RiskAssessmentEntity
         {
             Id = Guid.NewGuid(),
             RepositoryFullName = $"{context.Owner}/{context.Repo}",
@@ -142,7 +142,7 @@ public class WebhookHandler
             RiskLevel = assessment.OverallLevel,
             RuleBasedScore = assessment.ScorerResults.GetValueOrDefault("RuleBased")?.Score,
             MLScore = assessment.ScorerResults.GetValueOrDefault("MLModel")?.Score,
-            CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
             Author = context.Author,
             GitHubCommentUrl = postedComment.HtmlUrl,
             RiskFactorsJson = JsonSerializer.Serialize(assessment.AllRiskFactors),
@@ -211,7 +211,7 @@ public class WebhookHandler
             RiskLevel = assessment.OverallLevel,
             RuleBasedScore = assessment.ScorerResults.GetValueOrDefault("RuleBased")?.Score,
             MLScore = assessment.ScorerResults.GetValueOrDefault("MLModel")?.Score,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow,
             Author = context.Author,
             RiskFactorsJson = JsonSerializer.Serialize(assessment.AllRiskFactors),
             MetricsJson = JsonSerializer.Serialize(context)
