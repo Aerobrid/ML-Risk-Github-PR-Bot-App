@@ -82,7 +82,7 @@ Open the frontend (usually at `http://localhost:4200`) and the backend Swagger f
 docker-compose up --build
 ```
 
-3. Services will be available at the ports defined in `docker-compose.yml` (by default backend:5000, ml-service:8000, frontend:4200 when built into a container).
+3. Services will be available at the ports defined in `docker-compose.yml` (by default backend:5000, ml-service:8000, frontend:4200 when built into a container, so using ngrok here if you have no spare domain name is a good idea).
 
 ## Important Configuration (Secrets)
 
@@ -91,9 +91,29 @@ docker-compose up --build
 - `GitHub__PrivateKeyPath` — path to the PEM private key. When running locally, prefer `./secrets/github-app.pem` and ensure `SECRETS.md` is followed to keep it out of git.
 - `ML__ServiceUrl` — URL for ML service (default `http://localhost:8000`)
 
-The project includes `SECRETS.md` with instructions on how to keep keys out of source control. Never commit private keys or secrets.
+## Docker / Compose note about DB host
 
-Untracking a tracked secrets file (if you committed secrets earlier)
+When you run the stack with `docker compose`, each service runs inside its own container and they communicate over an internal Docker network. That means:
+
+- From your host machine, you may connect to the database at `localhost:1433`.
+- From a container (for example the `backend` container) the database is *not* reachable at `localhost` — `localhost` inside the container refers to the container itself.
+
+Therefore, when using `docker compose` you should point your connection string at the Compose service name `sqlserver` (the service defined in `docker-compose.yml`). Example:
+
+Database__ConnectionString=Server=sqlserver,1433;Database=DeploymentRiskDb;User Id=sa;Password=YOUR_SA_PASSWORD;TrustServerCertificate=True;
+
+If you previously had `Server=localhost,1433` in your `.env`, replace it before starting the Compose stack. The PowerShell command below will back up your `.env` and perform the replacement:
+
+```powershell
+Copy-Item .env .env.bak
+(gc .env) -replace 'Server=localhost,1433','Server=sqlserver,1433' | Set-Content .env
+```
+
+If instead you want containers to reach a database running on your host (not managed by Compose) use `host.docker.internal` on Windows:
+
+Database__ConnectionString=Server=host.docker.internal,1433;Database=DeploymentRiskDb;User Id=sa;Password=YOUR_SA_PASSWORD;TrustServerCertificate=True;
+
+## Untracking a tracked secrets file (if you committed secrets earlier)
 
 ```powershell
 git rm --cached backend/DeploymentRisk.Api/appsettings.json

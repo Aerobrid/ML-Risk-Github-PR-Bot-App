@@ -72,6 +72,3 @@ python train_xgboost_model.py
 2. After training the script will write models into `ml-service/models/` (for local runs)
     or `models/` depending on how you run the service. Copy the resulting files to the
     running service's models directory if needed and restart the ML service.
-
-If you need an API-based model management workflow later, consider re-enabling the
-endpoints behind authentication and admin-only controls.

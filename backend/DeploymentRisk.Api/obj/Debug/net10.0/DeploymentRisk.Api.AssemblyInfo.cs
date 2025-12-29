@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeploymentRisk.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a271a37fcc0a9885e48862e857b50bfecb8bd5a6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a97bc53c5923956fd6a8ddeb0aaedc90fc56d09")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeploymentRisk.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeploymentRisk.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

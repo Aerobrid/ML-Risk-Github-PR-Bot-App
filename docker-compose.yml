@@ -12,7 +12,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80
       - GitHub__AppId=${GITHUB_APP_ID}
-      - GitHub__PrivateKeyPath=/app/secrets/github-app.pem
+      - GitHub__PrivateKeyPath=/secrets/github-app.pem
       - GitHub__WebhookSecret=${GITHUB_WEBHOOK_SECRET}
       - Database__ConnectionString=${SQL_CONNECTION_STRING}
       - MLService__BaseUrl=http://ml-service:8000
