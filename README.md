@@ -175,3 +175,133 @@ The backend uses EF Core with a SQL Server provider by default. For local develo
 
 - Code scanning 403 (CodeQL):
   - Ensure the GitHub App has Code scanning read permissions, then reinstall.
+
+## Kubernetes Deployment
+
+- **Overview:** : Use Kubernetes for production deployments with Docker Compose. This project includes a sample manifest for a cluster under `linode/full-deploy.yaml` which is intentionally sanitized of secrets in the repo and built for linode platform. Put production secrets into Kubernetes Secrets or a secret manager and never commit them.
+
+- **Secrets (recommended):** : create secrets with `kubectl` or your cloud provider's secret store. Example (kubectl, creates `risk-secrets` in namespace `risk`):
+
+```powershell
+# create namespace
+kubectl create namespace risk
+
+# create secret from literals (recommended for CI):
+kubectl create secret generic risk-secrets \
+   --from-literal=SQL_SA_PASSWORD='YourStrong!Passw0rd' \
+   --from-literal=GITHUB_APP_ID='2540120' \
+   --from-literal=GITHUB_WEBHOOK_SECRET='your-webhook-secret-here' \
+   --from-literal=GITHUB_TOKEN='ghp_your_token_here' \
+   --namespace risk
+```
+
+- **Apply sanitized manifests:** : after creating secrets and confirming your `kubeconfig` points at the target cluster, apply the manifest:
+
+```powershell
+# from repo root
+kubectl apply -f linode/full-deploy.yaml -n risk
+```
+
+- **Image pull secrets for private registries:** : if images are stored in GHCR/AWS ECR/ACR, create an image pull secret and reference it in the Deployment `imagePullSecrets` (the sample already references `ghcr-secret`). Example for GHCR with a personal access token:
+
+```powershell
+# create docker-registry secret for GHCR
+kubectl create secret docker-registry ghcr-secret \
+   --docker-server=ghcr.io \
+   --docker-username=YOUR_GH_USERNAME \
+   --docker-password='YOUR_GH_PERSONAL_ACCESS_TOKEN' \
+   --namespace risk
+```
+
+- **Linode (LKE) quick steps:** :
+   - Create a Linode Kubernetes Engine (LKE) cluster from the Linode console.
+   - Download the kubeconfig from the Linode UI and merge it into `~/.kube/config` or setup `KUBECONFIG` accordingly.
+   - Create `risk` namespace and secrets as shown above, then apply `linode/full-deploy.yaml`.
+   - Use `kubectl get svc -n risk` to find public LoadBalancer IPs (frontend service in the sample is `LoadBalancer`).
+
+
+## Linode post-deploy notes
+
+If you've applied `linode/full-deploy.yaml` to an LKE cluster, use these Linode-specific steps to finish setup and expose services securely.
+
+- Get the frontend LoadBalancer IP (may take a few minutes to provision or may come already setup on the `NodeBalancer` tab):
+
+```powershell
+kubectl get svc frontend -n risk
+# look for EXTERNAL-IP column
+```
+
+- Create a DNS A record in Linode DNS pointing your domain (e.g. `risk.example.com`) to the external IP. You can do this in Linode Cloud Manager → Networking → Domains or via `linode-cli`.
+
+- Configure HTTPS with cert-manager (recommended). Example install and ClusterIssuer (LetsEncrypt staging for testing):
+
+```bash
+# install cert-manager
+kubectl apply --validate=false -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
+
+# create a ClusterIssuer for Let's Encrypt staging (replace email)
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+   name: letsencrypt-staging
+spec:
+   acme:
+      server: https://acme-staging-v02.api.letsencrypt.org/directory
+      email: you@example.com
+      privateKeySecretRef:
+         name: letsencrypt-staging
+      solvers:
+      - http01:
+            ingress:
+               class: nginx
+EOF
+```
+
+- Example Ingress (using nginx ingress controller) to front the frontend and backend and request TLS certificate (replace host and issuer):
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+   name: risk-ingress
+   namespace: risk
+   annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-staging
+spec:
+   rules:
+   - host: risk.example.com
+      http:
+         paths:
+         - path: /
+            pathType: Prefix
+            backend:
+               service:
+                  name: frontend
+                  port:
+                     number: 80
+   tls:
+   - hosts:
+      - risk.example.com
+      secretName: risk-tls
+```
+
+- GitHub webhook: set the webhook `Payload URL` to `https://risk.example.com/api/github/webhook` and ensure `GitHub__WebhookSecret` in your `risk-secrets` matches the webhook secret you configure in GitHub. Errors logging in with github oauth are mainly because of this.
+
+- Useful commands:
+
+```powershell
+# view logs
+kubectl logs -f deploy/backend -n risk
+
+# check deployments
+kubectl get deploy -n risk
+
+# rollout a new image
+kubectl set image deployment/backend backend=ghcr.io/your/repo-backend:tag -n risk
+```
+
+- Notes:
+   - Setting this app up on Linode is much, much easier than setting it up on AWS EKS.
+   - LKE LoadBalancers are billed and IP allocation can take a minute. I used **NodeBalancer** on linode console instead.
+   - If you prefer a stable hostname without managing certs yourself, use a cloud Load Balancer + DNS + managed certs or a platform ingress add-on that provisions TLS automatically.

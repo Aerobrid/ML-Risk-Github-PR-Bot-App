@@ -1,0 +1,281 @@
+# ===========================
+# Namespace
+# ===========================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: risk
+---
+# ===========================
+# Secrets (sensitive info + GHCR auth)
+# ===========================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: risk-secrets
+  namespace: risk
+type: Opaque
+data:
+  # Replace each value with the BASE64-encoded secret for your environment.
+  # Example (Linux/macOS): echo -n 'YourStrong!Passw0rd' | base64
+  SQL_SA_PASSWORD: REPLACE_WITH_BASE64_ENCODED_SQL_SA_PASSWORD
+  GITHUB_APP_ID: REPLACE_WITH_BASE64_ENCODED_GITHUB_APP_ID
+  GITHUB_WEBHOOK_SECRET: REPLACE_WITH_BASE64_ENCODED_GITHUB_WEBHOOK_SECRET
+  GITHUB_TOKEN: REPLACE_WITH_BASE64_ENCODED_GITHUB_TOKEN
+  JWT_SECRET_KEY: REPLACE_WITH_BASE64_ENCODED_JWT_SECRET_KEY
+  # GHCR auth (base64 encoded personal access token if required)
+  ghcr-auth: REPLACE_WITH_BASE64_ENCODED_GHCR_AUTH
+---
+# ===========================
+# ConfigMap (non-sensitive env)
+# ===========================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-config
+  namespace: risk
+data:
+  LLM_PROVIDER: "Gemini"
+  LLM_MODEL: "idk"
+  # Do NOT store API keys here. Put them in a Kubernetes Secret and reference via envFrom or env.
+  LLM_API_KEY: "REPLACE_WITH_SECRET_REF_OR_REMOVE"
+  LLM_ENABLED: "true"
+  LLM_MAX_TOKENS: "500"
+  LLM_TEMPERATURE: "0.7"
+  LLM_FALLBACK_TO_BASIC: "true"
+  # Move any connection string secrets into the Secret above and reference with envFrom/env in the Deployment.
+  Database__ConnectionString: "Server=sqlserver,1433;Database=DeploymentRiskDb;User Id=sa;Password=REDACTED;TrustServerCertificate=True;"
+  SQL_CONNECTION_STRING: "Server=sqlserver,1433;Database=DeploymentRiskDb;User Id=sa;Password=REDACTED;TrustServerCertificate=True;"
+  ML_SERVICE_BASE_URL: "http://ml-service:8000"
+  ML_SERVICE_TIMEOUT_SECONDS: "30"
+  API_PORT: "5000"
+  FRONTEND_URL: "http://frontend:80"
+  JWT_ISSUER: "DeploymentRiskPlatform"
+  JWT_AUDIENCE: "DeploymentRiskPlatform"
+  ENABLE_ML_MODEL: "true"
+  ENABLE_CODEQL_SCANNING: "true"
+  ENABLE_LLM_REVIEWS: "true"
+  ASPNETCORE_ENVIRONMENT: "Development"
+  DOTNET_ENVIRONMENT: "Development"
+---
+# ===========================
+# PersistentVolumeClaim for SQL Server
+# ===========================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlserver-pvc
+  namespace: risk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# ===========================
+# SQL Server Deployment + Service
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlserver
+  namespace: risk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: SQL_SA_PASSWORD
+          volumeMounts:
+            - name: sqlserver-data
+              mountPath: /var/opt/mssql
+      volumes:
+        - name: sqlserver-data
+          persistentVolumeClaim:
+            claimName: sqlserver-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver
+  namespace: risk
+spec:
+  selector:
+    app: sqlserver
+  ports:
+    - port: 1433
+      targetPort: 1433
+  type: ClusterIP
+---
+# ===========================
+# ML Service Deployment + Service
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-service
+  namespace: risk
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ml-service
+  template:
+    metadata:
+      labels:
+        app: ml-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: ml-service
+          image: ghcr.io/aerobrid/pr-app-ml:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: risk-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-service
+  namespace: risk
+spec:
+  selector:
+    app: ml-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
+---
+# ===========================
+# Backend Deployment + Service
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: risk
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend
+          image: ghcr.io/aerobrid/pr-app-backend:latest
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: risk-config
+          env:
+            - name: GitHub__AppId
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: GITHUB_APP_ID
+            - name: GitHub__WebhookSecret
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: GITHUB_WEBHOOK_SECRET
+            - name: GitHub__Token
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: GITHUB_TOKEN
+            - name: SQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: SQL_SA_PASSWORD
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: risk-secrets
+                  key: JWT_SECRET_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: risk
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+# ===========================
+# Frontend Deployment + Service
+# ===========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: risk
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: frontend
+          image: ghcr.io/aerobrid/pr-app-frontend:latest
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: risk-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: risk
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
