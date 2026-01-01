@@ -1,5 +1,10 @@
 # Deployment Risk Platform
 
+## Demo
+<img width="1856" height="877" alt="Screenshot 2025-12-28 185801" src="https://github.com/user-attachments/assets/0fc82e14-8fb1-45bb-891e-0cba9beee8df" />
+<img width="1855" height="875" alt="Screenshot 2025-12-28 204914" src="https://github.com/user-attachments/assets/44b64212-dc0b-4c69-ba29-1c9492b7c7d0" />
+
+## Info
 A lightweight platform that analyzes code changes and posts risk assessments to pull requests. It consists of three main components:
 
 - Backend (`backend/DeploymentRisk.Api`): .NET 10 Web API that handles GitHub App authentication, webhooks, model management, and risk scoring
