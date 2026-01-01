@@ -3,6 +3,8 @@
 ## Demo
 <img width="1856" height="877" alt="Screenshot 2025-12-28 185801" src="https://github.com/user-attachments/assets/0fc82e14-8fb1-45bb-891e-0cba9beee8df" />
 <img width="1855" height="875" alt="Screenshot 2025-12-28 204914" src="https://github.com/user-attachments/assets/44b64212-dc0b-4c69-ba29-1c9492b7c7d0" />
+<img width="1251" height="327" alt="Screenshot 2025-12-30 220546" src="https://github.com/user-attachments/assets/b7b3bc35-fdb7-4074-9aae-c0b8a5a53bb6" />
+
 
 ## Info
 A lightweight platform that analyzes code changes and posts risk assessments to pull requests. It consists of three main components:
