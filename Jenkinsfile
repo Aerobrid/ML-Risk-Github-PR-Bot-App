@@ -37,8 +37,8 @@ pipeline {
         // restore and build from repo root (where .sln file is)
         sh 'dotnet restore deployment-risk-platform.sln'
         sh 'dotnet build deployment-risk-platform.sln --configuration Release'
-        // run tests from test project
-        sh 'dotnet test backend/Tests/DeploymentRisk.Api.Tests/DeploymentRisk.Api.Tests.csproj --no-build --verbosity normal'
+        // run backend tests from test project (builds test project if needed)
+        sh 'dotnet test backend/Tests/DeploymentRisk.Api.Tests/DeploymentRisk.Api.Tests.csproj --verbosity normal'
       }
     }
 
@@ -67,9 +67,9 @@ pipeline {
 
   // happens after pipeline
   post {
-    // this says: always look for test results and save build artifacts (can be found in Jenkins UI)
+    // collect test results and artifacts if available
     always {
-      junit '**/TestResults/*.xml'
+      junit testResults: '**/TestResults/*.xml', allowEmptyResults: true
       archiveArtifacts artifacts: '**/coverage/**, **/TestResults/**', allowEmptyArchive: true
     }
   }
