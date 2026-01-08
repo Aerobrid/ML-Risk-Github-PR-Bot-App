@@ -34,13 +34,11 @@ pipeline {
     // Backend
     stage('Backend: Restore, Build, Test') {
       steps {
-        dir('backend') {
-          // restore and build from backend root
-          sh 'dotnet restore'
-          sh 'dotnet build --configuration Release'
-          // run tests from test project directory
-          sh 'dotnet test Tests/DeploymentRisk.Api.Tests/DeploymentRisk.Api.Tests.csproj --no-build --verbosity normal'
-        }
+        // restore and build from repo root (where .sln file is)
+        sh 'dotnet restore deployment-risk-platform.sln'
+        sh 'dotnet build deployment-risk-platform.sln --configuration Release'
+        // run tests from test project
+        sh 'dotnet test backend/Tests/DeploymentRisk.Api.Tests/DeploymentRisk.Api.Tests.csproj --no-build --verbosity normal'
       }
     }
 
