@@ -2,6 +2,8 @@ using DeploymentRisk.Api.Models.Entities;
 
 namespace DeploymentRisk.Api.Repositories;
 
+// interface used for Repository folder code
+// details the methods needed to be used by a class implementing it
 public interface IRiskRepository
 {
     Task<Guid> SaveAssessmentAsync(RiskAssessmentEntity assessment);

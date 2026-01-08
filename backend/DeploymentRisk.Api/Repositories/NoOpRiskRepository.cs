@@ -2,6 +2,8 @@ using DeploymentRisk.Api.Models.Entities;
 
 namespace DeploymentRisk.Api.Repositories;
 
+// lets app run without DB data persistence
+// simlar setup as `SQLServerRiskRepository.cs`
 public class NoOpRiskRepository : IRiskRepository
 {
     private readonly ILogger<NoOpRiskRepository> _logger;

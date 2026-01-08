@@ -1,4 +1,4 @@
-﻿using System;
+﻿// EF Core Migration File (DB schema version control)
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,13 +6,19 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DeploymentRisk.Api.Migrations
 {
     /// <inheritdoc />
+    // NOTE: partial allows EF to generate extra code in background
+    // base migration class gives Up and Down methods
     public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
+        // run this method to create tables, columns, indexes, etc. on a `dotnet ef databse update`
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // creating configuration table
             migrationBuilder.CreateTable(
+                // its name
                 name: "Configurations",
+                // according to ConfigurationEntity properties
                 columns: table => new
                 {
                     Key = table.Column<string>(type: "nvarchar(450)", nullable: false),
@@ -25,6 +31,8 @@ namespace DeploymentRisk.Api.Migrations
                     table.PrimaryKey("PK_Configurations", x => x.Key);
                 });
 
+            // risk assessment table, simlar setups
+            // `nvarchar(max)` is a string with unlimited length
             migrationBuilder.CreateTable(
                 name: "RiskAssessments",
                 columns: table => new
@@ -52,6 +60,7 @@ namespace DeploymentRisk.Api.Migrations
                     table.PrimaryKey("PK_RiskAssessments", x => x.Id);
                 });
 
+            // webhook event table
             migrationBuilder.CreateTable(
                 name: "WebhookEvents",
                 columns: table => new
@@ -68,6 +77,7 @@ namespace DeploymentRisk.Api.Migrations
                     table.PrimaryKey("PK_WebhookEvents", x => x.Id);
                 });
 
+            // adding indexes make DB queries faster for common operations like by repo or CreatedAt/RecievedAt date
             migrationBuilder.CreateIndex(
                 name: "IX_RiskAssessments_CreatedAt",
                 table: "RiskAssessments",
@@ -85,6 +95,7 @@ namespace DeploymentRisk.Api.Migrations
         }
 
         /// <inheritdoc />
+        // this method undoes migration for rollbacks (removes tables instead of adding them)
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

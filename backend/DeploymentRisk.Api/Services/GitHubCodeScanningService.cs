@@ -3,6 +3,7 @@ using DeploymentRisk.Api.Models;
 
 namespace DeploymentRisk.Api.Services;
 
+// TODO: Add functionality to app + test thoroughly
 public class GitHubCodeScanningService
 {
     private readonly GitHubClientService _github;
@@ -14,10 +15,8 @@ public class GitHubCodeScanningService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Get security alerts for a repository with multi-source fallback.
-    /// Tries CodeQL first, then Dependabot, then returns empty list.
-    /// </summary>
+    // Get security alerts for a repository with multi-source fallback
+    // Tries CodeQL first -> then Dependabot -> then returns empty list
     public async Task<List<Vulnerability>> GetCodeScanningAlertsAsync(long installationId, string owner, string repo, string refName)
     {
         try
@@ -54,9 +53,8 @@ public class GitHubCodeScanningService
         }
     }
 
-    /// <summary>
-    /// Get CodeQL alerts for specific PR (filters by PR files).
-    /// </summary>
+
+    // Get CodeQL alerts for specific PR (filters by PR files)
     public async Task<List<Vulnerability>> GetCodeScanningAlertsForPRAsync(
         long installationId,
         string owner,

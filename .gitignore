@@ -12,6 +12,9 @@ secrets/
 **/node_modules/
 **/.angular/
 appsettings.json
+__pycache__*
+myvenv*
+venv*
 
 # IDE
 .vs/

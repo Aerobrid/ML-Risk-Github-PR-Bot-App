@@ -8,6 +8,8 @@ namespace DeploymentRisk.Api.Services;
 
 public class WebhookHandler
 {
+    // handles incoming webhook payloads and orchestrates analysis/posting
+    // basically processes webhooks and turns them into risk assessments and comments
     private readonly GitHubClientService _github;
     private readonly RiskAssessmentService _riskService;
     private readonly LlmReviewService _llmReview;
@@ -30,25 +32,31 @@ public class WebhookHandler
 
     public async Task ProcessAsync(WebhookEvent webhook)
     {
+        // log basic info about incoming event
         _logger.LogInformation("Processing webhook event: {EventType}", webhook.EventType);
 
         try
         {
+            // route by event type
             if (webhook.EventType == "pull_request")
             {
+                // handle PR events (open, sync, reopen)
                 await HandlePullRequestAsync(webhook.Payload);
             }
             else if (webhook.EventType == "push")
             {
+                // handle push events
                 await HandlePushAsync(webhook.Payload);
             }
             else
             {
+                // ignore other types for now
                 _logger.LogWarning("Unsupported webhook event type: {EventType}", webhook.EventType);
             }
         }
         catch (Exception ex)
         {
+            // bubble up after logging so caller can handle retries if needed
             _logger.LogError(ex, "Error processing webhook {EventType}", webhook.EventType);
             throw;
         }
@@ -65,19 +73,22 @@ public class WebhookHandler
         var data = JsonSerializer.Deserialize<PullRequestPayload>(payload, options);
         if (data == null)
         {
+            // malformed payload, nothing to do
             _logger.LogWarning("Failed to deserialize pull request payload");
             return;
         }
 
         if (data.Action != "opened" && data.Action != "synchronize" && data.Action != "reopened")
         {
+            // only react to open/sync/reopen events
             _logger.LogDebug("Ignoring PR action: {Action}", data.Action);
             return;
         }
 
+        // log which PR we're processing
         _logger.LogInformation("Processing PR #{Number} in {Repo}", data.PullRequest.Number, data.Repository.FullName);
 
-        // Fetch PR files to analyze
+        // Fetch PR files from GitHub for analysis
         var files = await _github.GetPullRequestFilesAsync(
             data.Installation.Id,
             data.Repository.Owner.Login,
@@ -85,6 +96,7 @@ public class WebhookHandler
             data.PullRequest.Number
         );
 
+        // build a RiskContext object with metadata and file diffs
         var context = new RiskContext
         {
             InstallationId = data.Installation.Id,
@@ -106,12 +118,12 @@ public class WebhookHandler
             Author = data.PullRequest.User.Login
         };
 
+        // Run risk assessment (core business logic)
         var assessment = await _riskService.AssessAsync(context);
 
-        // Generate AI-powered review comment
+        // Generate a text review using LLM (optional) and post to PR
         var comment = await _llmReview.GenerateReviewCommentAsync(context, assessment);
 
-        // Post comment to GitHub
         var postedComment = await _github.PostCommentAsync(
             data.Installation.Id,
             context.Owner,
@@ -129,8 +141,8 @@ public class WebhookHandler
             _logger.LogInformation("Posted risk assessment comment to PR #{Number} (url={Url})", data.PullRequest.Number, postedComment.HtmlUrl);
         }
 
-        // Save to DB (if configured)
-            var entity = new RiskAssessmentEntity
+        // Persist assessment to repository if configured
+        var entity = new RiskAssessmentEntity
         {
             Id = Guid.NewGuid(),
             RepositoryFullName = $"{context.Owner}/{context.Repo}",
@@ -142,9 +154,9 @@ public class WebhookHandler
             RiskLevel = assessment.OverallLevel,
             RuleBasedScore = assessment.ScorerResults.GetValueOrDefault("RuleBased")?.Score,
             MLScore = assessment.ScorerResults.GetValueOrDefault("MLModel")?.Score,
-                CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow,
             Author = context.Author,
-            GitHubCommentUrl = postedComment.HtmlUrl,
+            GitHubCommentUrl = postedComment?.HtmlUrl,
             RiskFactorsJson = JsonSerializer.Serialize(assessment.AllRiskFactors),
             MetricsJson = JsonSerializer.Serialize(context)
         };
@@ -167,11 +179,13 @@ public class WebhookHandler
             return;
         }
 
+        // log push and extract branch
         _logger.LogInformation("Processing push to {Branch} in {Repo}", data.Ref, data.Repository.FullName);
 
         // Extract branch name from ref (refs/heads/main -> main)
         var branch = data.Ref.Replace("refs/heads/", "");
 
+        // Build context from commits: combine added/modified/removed files
         var context = new RiskContext
         {
             InstallationId = data.Installation.Id,
@@ -192,13 +206,12 @@ public class WebhookHandler
             Author = data.Pusher.Name
         };
 
+        // Run risk assessment on the push context
         var assessment = await _riskService.AssessAsync(context);
 
         _logger.LogInformation("Push risk assessment complete: {Score} ({Level})", assessment.OverallScore, assessment.OverallLevel);
 
-        // For pushes, we could create a commit status or check run instead of a comment
-        // For now, we'll just log and save to DB
-
+        // For pushes we might create a commit status or check run; here we persist the result
         var entity = new RiskAssessmentEntity
         {
             Id = Guid.NewGuid(),
@@ -222,6 +235,9 @@ public class WebhookHandler
 
     private string FormatAssessmentComment(RiskAssessmentResult assessment)
     {
+        // Build a markdown-style comment summarizing the assessment
+        // used as the body of a PR review comment
+
         var emoji = assessment.OverallLevel switch
         {
             "LOW" => "✅",
@@ -311,19 +327,22 @@ public class WebhookHandler
         sb.AppendLine($"- **Timestamp**: {DateTime.UtcNow:u}");
         sb.AppendLine("</details>");
 
+        // return assembled markdown comment
         return sb.ToString();
     }
 
     private void PrintIssue(StringBuilder sb, Vulnerability issue)
     {
-         sb.AppendLine($"- **{issue.Type}**: {issue.Description}");
-         sb.AppendLine($"  - 📄 `{issue.File}` : line {issue.Line}");
+        // format vulnerability details for the comment
+        sb.AppendLine($"- **{issue.Type}**: {issue.Description}");
+        sb.AppendLine($"  - 📄 `{issue.File}` : line {issue.Line}");
     }
 }
 
 // Simplified payload models
 public class PullRequestPayload
 {
+    // payload model for pull_request webhook
     public string Action { get; set; } = string.Empty;
     public PullRequestData PullRequest { get; set; } = new();
     public RepositoryData Repository { get; set; } = new();
@@ -344,6 +363,7 @@ public class PullRequestData
 
 public class PushPayload
 {
+    // payload model for push webhook
     public string Ref { get; set; } = string.Empty;
     public string Before { get; set; } = string.Empty;
     public string After { get; set; } = string.Empty;
@@ -355,6 +375,7 @@ public class PushPayload
 
 public class CommitData
 {
+    // commit details contained in push events
     public string Id { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public List<string> Added { get; set; } = new();
@@ -364,6 +385,7 @@ public class CommitData
 
 public class RepositoryData
 {
+    // basic repository metadata used by payloads
     public string Name { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public OwnerData Owner { get; set; } = new();
@@ -392,6 +414,7 @@ public class BaseData
 
 public class InstallationData
 {
+    // GitHub App installation id
     public long Id { get; set; }
 }
 

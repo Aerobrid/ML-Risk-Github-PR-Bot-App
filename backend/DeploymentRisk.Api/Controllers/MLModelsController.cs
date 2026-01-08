@@ -4,6 +4,7 @@ namespace DeploymentRisk.Api.Controllers;
 
 [ApiController]
 [Route("api/ml")]
+// manages ml models and syncs with the ml service
 public class MLModelsController : ControllerBase
 {
     private readonly IConfiguration _config;
@@ -13,6 +14,7 @@ public class MLModelsController : ControllerBase
 
     private readonly IHttpClientFactory _httpClientFactory;
 
+    // inject app config, logger, environment, and http client factory
     public MLModelsController(
         IConfiguration config,
         ILogger<MLModelsController> logger,
@@ -25,6 +27,7 @@ public class MLModelsController : ControllerBase
         _httpClientFactory = httpClientFactory;
     }
 
+    // fetch ml models from the service and merge with local registry
     [HttpGet("models")]
     public async Task<IActionResult> GetModels()
     {
@@ -78,6 +81,7 @@ public class MLModelsController : ControllerBase
         }
     }
 
+    // upload a new model file to the ml service
     [HttpPost("models/upload")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadModel([FromForm] UploadModelRequest request)
@@ -152,6 +156,7 @@ public class MLModelsController : ControllerBase
         public string? Type { get; set; }
     }
 
+    // change the endpoint/filename reference for a model
     [HttpPost("models/{modelId}/endpoint")]
     public IActionResult UpdateModelEndpoint(string modelId, [FromBody] UpdateEndpointRequest request)
     {
@@ -169,6 +174,7 @@ public class MLModelsController : ControllerBase
         return Ok(new { message = "Endpoint updated successfully" });
     }
 
+    // delete a model from local registry and ml service
     [HttpDelete("models/{modelId}")]
     public IActionResult DeleteModel(string modelId)
     {
@@ -221,6 +227,7 @@ public class MLModelsController : ControllerBase
         return NoContent();
     }
 
+    // toggle a model enabled/disabled state
     [HttpPatch("models/{modelId}/toggle")]
     public IActionResult ToggleModel(string modelId)
     {
@@ -239,6 +246,7 @@ public class MLModelsController : ControllerBase
     }
 }
 
+// ml model metadata
 public class MLModelInfo
 {
     public string Id { get; set; } = string.Empty;
@@ -250,4 +258,5 @@ public class MLModelInfo
     public string? Version { get; set; }
 }
 
+// request to change a model's endpoint reference
 public record UpdateEndpointRequest(string Endpoint);

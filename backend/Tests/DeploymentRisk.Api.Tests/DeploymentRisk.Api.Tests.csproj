@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- project-level settings -->
+  <PropertyGroup>
+    <!-- version -->
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- not a NuGet package, not a library we use anywhere else -->
+    <IsPackable>false</IsPackable>
+    <!-- test project does not need this -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <!-- NuGet packages (the actual dependencies we use) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+  </ItemGroup>
+
+  <!-- test project depends on our backend API project -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\DeploymentRisk.Api\DeploymentRisk.Api.csproj" />
+  </ItemGroup>
+
+</Project>

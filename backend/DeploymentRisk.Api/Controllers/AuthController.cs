@@ -8,8 +8,12 @@ using System.Text;
 
 namespace DeploymentRisk.Api.Controllers;
 
+// Tells ASP.NET Core that this is a web API controller
 [ApiController]
+// all endoints within controller is prefixed with api/auth
 [Route("api/auth")]
+
+// ControllerBase provides methods like Ok(), BadRequest(), StatusCode(), etc.
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _config;
@@ -26,11 +30,13 @@ public class AuthController : ControllerBase
         _httpClient = httpClientFactory.CreateClient();
     }
 
+    // recieve a body with GH code from front-end Oauth flow at endpoint: POST /api/auth/github/callback
     [HttpPost("github/callback")]
     public async Task<IActionResult> GitHubCallback([FromBody] GitHubCallbackRequest request)
     {
         try
-        {
+        {   
+            // validate code
             if (string.IsNullOrEmpty(request.Code))
             {
                 return BadRequest(new { message = "Code is required" });
@@ -73,7 +79,10 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { message = $"Authentication failed: {ex.Message}" });
         }
     }
-
+    
+    // 1. Sends a POST request to https://github.com/login/oauth/access_token with: client_id, client_secret, code, redirect_uri
+    // 2. Github responds with an access token
+    // 3. Deserializes response into a `GitHubTokenResponse`
     private async Task<GitHubTokenResponse?> ExchangeCodeForToken(string code, string? redirectUri = null)
     {
         var clientId = _config["GitHub:ClientId"];
@@ -109,6 +118,8 @@ public class AuthController : ControllerBase
 
         var content = await response.Content.ReadAsStringAsync();
 
+        // status code not 2xx
+        // NOTE: test this feature
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("GitHub token exchange failed with status {StatusCode}: {Content}", response.StatusCode, content);
@@ -130,12 +141,16 @@ public class AuthController : ControllerBase
         return tokenResponse;
     }
 
+    // 1. Method calls GitHub API: GET https://api.github.com/user using the access token
+    // 2. Returns a GitHubUser object containing: Id, Login, Name, Email, AvatarUrl
     private async Task<GitHubUser?> GetGitHubUser(string accessToken)
     {
+        // add necessary http request headers
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "DeploymentRiskPlatform");
 
+        // send
         var response = await _httpClient.GetAsync("https://api.github.com/user");
 
         if (!response.IsSuccessStatusCode)
@@ -152,6 +167,8 @@ public class AuthController : ControllerBase
         return user;
     }
 
+    // uses `JwtSecurityToken` to create a signed token for your API
+    // signed token is what the frontend will store and send for authenticated API calls
     private string GenerateJwtToken(GitHubUser user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
@@ -159,6 +176,7 @@ public class AuthController : ControllerBase
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // add claims
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -166,7 +184,8 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.Email, user.Email ?? ""),
             new Claim("avatar_url", user.AvatarUrl ?? "")
         };
-
+        
+        // build signed token
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"] ?? "DeploymentRiskPlatform",
             audience: _config["Jwt:Audience"] ?? "DeploymentRiskPlatform",
@@ -179,8 +198,12 @@ public class AuthController : ControllerBase
     }
 }
 
+// request body from the frontend
 public record GitHubCallbackRequest(string Code, string? RedirectUri = null);
 
+// helper classes
+
+// response from GitHub with the access token
 public class GitHubTokenResponse
 {
     [JsonPropertyName("access_token")]
@@ -193,6 +216,7 @@ public class GitHubTokenResponse
     public string? Scope { get; set; }
 }
 
+// github user info
 public class GitHubUser
 {
     public long Id { get; set; }
@@ -202,6 +226,7 @@ public class GitHubUser
     public string? AvatarUrl { get; set; }
 }
 
+// the API response returned to client
 public class AuthResponse
 {
     public string Token { get; set; } = string.Empty;

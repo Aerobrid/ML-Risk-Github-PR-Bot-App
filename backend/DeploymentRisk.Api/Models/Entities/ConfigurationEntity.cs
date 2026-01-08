@@ -1,5 +1,7 @@
 namespace DeploymentRisk.Api.Models.Entities;
 
+// database entity
+// represents single configuration setting within DB
 public class ConfigurationEntity
 {
     public string Key { get; set; } = string.Empty;

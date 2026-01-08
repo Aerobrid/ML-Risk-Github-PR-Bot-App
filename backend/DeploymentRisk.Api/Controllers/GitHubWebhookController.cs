@@ -7,6 +7,8 @@ namespace DeploymentRisk.Api.Controllers;
 
 [ApiController]
 [Route("api/github/webhook")]
+// receives and validates incoming github webhooks
+// also queues them for further processing
 public class GitHubWebhookController : ControllerBase
 {
     private readonly IConfiguration _config;
@@ -23,6 +25,7 @@ public class GitHubWebhookController : ControllerBase
         _processor = processor;
     }
 
+    // receive github webhook, verify signature, queue for processing
     [HttpPost]
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> HandleWebhook()
@@ -99,6 +102,7 @@ public class GitHubWebhookController : ControllerBase
         }
     }
 
+    // validate webhook signature using hmacsha256
     private bool VerifySignature(string payload, string signature)
     {
         var secret = _config["GitHub:WebhookSecret"];

@@ -2,8 +2,10 @@ using DeploymentRisk.Api.Models;
 
 namespace DeploymentRisk.Api.Services.Scoring;
 
+// code scanning scorer
 public class CodeScanningScorer : IRiskScorer
 {
+    // NOTE: talks to GitHub Code Scanning API
     private readonly GitHubCodeScanningService _scanningService;
     private readonly IConfiguration _config;
     private readonly ILogger<CodeScanningScorer> _logger;
@@ -18,21 +20,26 @@ public class CodeScanningScorer : IRiskScorer
         _logger = logger;
     }
 
+    // unique identfier for this scorer
     public string Name => "CodeScanning";
 
+    // determined from config
     public bool IsEnabled => _config.GetValue<bool>("RiskScoring:Enabled:CodeScanning", true); // Default to true
 
     public async Task<ScorerResult> ScoreAsync(RiskContext context)
     {
         // Only run for PRs or Pushes where we have a ref
+        // github code scanning needs a ref (a commit SHA or branch name)
         if (string.IsNullOrEmpty(context.Sha) && string.IsNullOrEmpty(context.Branch))
         {
+            // early exit
             return new ScorerResult { Score = 0.0, Level = "LOW", RiskFactors = new List<string> { "No ref to scan" } };
         }
 
+        // determine ref name
         var refName = !string.IsNullOrEmpty(context.Sha) ? context.Sha : $"refs/heads/{context.Branch}";
         
-        // Fetch Code Scanning Alerts
+        // Fetch Code Scanning Alerts from github API
         var alerts = await _scanningService.GetCodeScanningAlertsAsync(
             context.InstallationId, 
             context.Owner, 
@@ -40,6 +47,7 @@ public class CodeScanningScorer : IRiskScorer
             refName
         );
 
+        // if no alerts pesent -> low risk
         if (!alerts.Any())
         {
              return new ScorerResult { Score = 0.0, Level = "LOW", RiskFactors = new List<string> { "No code scanning alerts found" } };

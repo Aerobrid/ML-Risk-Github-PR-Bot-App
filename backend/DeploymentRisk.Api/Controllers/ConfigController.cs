@@ -5,12 +5,14 @@ namespace DeploymentRisk.Api.Controllers;
 
 [ApiController]
 [Route("api/config")]
+// handles runtime configuration queries and updates
 public class ConfigController : ControllerBase
 {
     private readonly IConfigRepository _configRepo;
     private readonly IConfiguration _appConfig;
     private readonly ILogger<ConfigController> _logger;
 
+    // controller can read config from both persistent storage and app settings
     public ConfigController(
         IConfigRepository configRepo,
         IConfiguration appConfig,
@@ -21,6 +23,7 @@ public class ConfigController : ControllerBase
         _logger = logger;
     }
 
+    // fetch db connection string from store or app config
     [HttpGet("database")]
     public async Task<IActionResult> GetDatabaseConfig()
     {
@@ -42,6 +45,7 @@ public class ConfigController : ControllerBase
         }
     }
 
+    // save new db connection string to config store
     [HttpPost("database")]
     public async Task<IActionResult> UpdateDatabaseConfig([FromBody] DatabaseConfigRequest request)
     {

@@ -11,8 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DeploymentRisk.Api.Migrations
 {
     [DbContext(typeof(RiskDbContext))]
+    // snapshot of the current db model state (used by migrations)
     partial class RiskDbContextModelSnapshot : ModelSnapshot
     {
+        // builds the current model "shape" from the latest migration
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
@@ -20,8 +22,10 @@ namespace DeploymentRisk.Api.Migrations
                 .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
+            // use identity columns by default for sql server
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            // app-level configuration key/value storage
             modelBuilder.Entity("DeploymentRisk.Api.Models.Entities.ConfigurationEntity", b =>
                 {
                     b.Property<string>("Key")
@@ -43,6 +47,7 @@ namespace DeploymentRisk.Api.Migrations
                     b.ToTable("Configurations");
                 });
 
+            // main risk assessment records captured from events/prs (uses DateTimeOffset for CreatedAt)
             modelBuilder.Entity("DeploymentRisk.Api.Models.Entities.RiskAssessmentEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -105,6 +110,7 @@ namespace DeploymentRisk.Api.Migrations
 
                     b.HasKey("Id");
 
+                    // helpful indexes for common queries
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("RepositoryFullName", "CreatedAt");
@@ -112,6 +118,7 @@ namespace DeploymentRisk.Api.Migrations
                     b.ToTable("RiskAssessments");
                 });
 
+            // raw webhook intake + processing flagging
             modelBuilder.Entity("DeploymentRisk.Api.Models.Entities.WebhookEventEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -137,6 +144,7 @@ namespace DeploymentRisk.Api.Migrations
 
                     b.HasKey("Id");
 
+                    // quick time-based lookup
                     b.HasIndex("ReceivedAt");
 
                     b.ToTable("WebhookEvents");

@@ -1,10 +1,14 @@
+// official GitHub API SDK for .NET
 using Octokit;
+// RSA cryptography
 using System.Security.Cryptography;
+// to create JWT tokens + sign them with RSA (required for github app integration)
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace DeploymentRisk.Api.Services;
 
+// service is used by controllers (hence the name) or background processes/jobs
 public class GitHubClientService
 {
     private readonly IConfiguration _config;
@@ -18,6 +22,7 @@ public class GitHubClientService
 
     private async Task<GitHubClient> GetAppClientAsync()
     {
+        // read GitHub App ID and path to .pem key
         var appId = _config.GetValue<int>("GitHub:AppId");
         var privateKeyPath = _config["GitHub:PrivateKeyPath"] ?? string.Empty;
 
@@ -27,6 +32,7 @@ public class GitHubClientService
         }
 
         // Try several candidate locations to be tolerant in development (absolute, repo-relative, secrets folder)
+        // NOTE: reminds me to make other Services more tolerant like this in addition to fallback
         var candidates = new List<string>
         {
             privateKeyPath,
@@ -38,7 +44,9 @@ public class GitHubClientService
             Path.Combine(Directory.GetCurrentDirectory(), "..", "secrets", Path.GetFileName(privateKeyPath))
         };
 
+        // to store actual path
         string? resolved = null;
+        // ignore duplicates when searching each possible location
         foreach (var c in candidates.Distinct())
         {
             try
@@ -59,6 +67,7 @@ public class GitHubClientService
             throw new FileNotFoundException($"GitHub App private key not found at '{privateKeyPath}' (tried candidates). Set GitHub__PrivateKeyPath to the PEM file path.");
         }
 
+        // load key
         var privateKeyPem = await File.ReadAllTextAsync(resolved);
         
         // Create RSA object without 'using' so it lives as long as the RsaSecurityKey needs it
@@ -73,9 +82,11 @@ public class GitHubClientService
              throw; 
         }
 
+        // for signing JWT
         var securityKey = new RsaSecurityKey(rsa);
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
 
+        // for building JWT
         var descriptor = new SecurityTokenDescriptor
         {
             Issuer = appId.ToString(),
@@ -84,16 +95,20 @@ public class GitHubClientService
             SigningCredentials = credentials
         };
 
+        // create signed JWT string
         var handler = new JwtSecurityTokenHandler();
         var token = handler.CreateToken(descriptor);
         var jwt = handler.WriteToken(token);
 
+        // create the github app client
         return new GitHubClient(new ProductHeaderValue("deployment-risk-bot"))
         {
+            // authenticate as github app
             Credentials = new Credentials(jwt, AuthenticationType.Bearer)
         };
     }
 
+    // Public methods for controllers
     public async Task<IReadOnlyList<Installation>> GetAllInstallationsAsync()
     {
         var appClient = await GetAppClientAsync();

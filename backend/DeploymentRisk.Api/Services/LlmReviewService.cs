@@ -1,14 +1,12 @@
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 using DeploymentRisk.Api.Models;
 
 namespace DeploymentRisk.Api.Services;
 
-/// <summary>
-/// Service for generating AI-powered PR review comments using LLM APIs (OpenAI or Claude).
-/// Falls back to template-based comments when LLM is disabled or fails.
-/// </summary>
+// TODO: Add functionality to app + test thoroughly
+// Service for generating AI-powered PR review comments using LLM APIs (OpenAI or Claude)
+// Falls back to template-based comments when LLM is disabled or fails
 public class LlmReviewService
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -32,6 +30,7 @@ public class LlmReviewService
         RiskContext context,
         RiskAssessmentResult assessment)
     {
+        // make toggable
         var isEnabled = _config.GetValue<bool>("LLM:Enabled", false);
         var apiKey = _config["LLM:ApiKey"] ?? Environment.GetEnvironmentVariable("LLM_API_KEY");
 
@@ -41,6 +40,8 @@ public class LlmReviewService
             return FormatTemplateComment(assessment);
         }
 
+        // Provider switches the concrete request/response shape we expect
+        // Keep provider names simple: "OpenAI" or "Claude" (will configure later)
         var provider = _config["LLM:Provider"] ?? "OpenAI";
 
         try
@@ -67,6 +68,7 @@ public class LlmReviewService
                 return FormatTemplateComment(assessment);
             }
 
+            // If the operator opted out of fallback, bubble the error so the caller can decide
             throw;
         }
     }
@@ -76,6 +78,7 @@ public class LlmReviewService
         RiskAssessmentResult assessment,
         string apiKey)
     {
+        // Note: model names evolve quickly so keep models configurable in appsettings
         var model = _config["LLM:Model"] ?? "gpt-4o-mini";
         var maxTokens = _config.GetValue<int>("LLM:MaxTokens", 500);
         var temperature = _config.GetValue<double>("LLM:Temperature", 0.7);
@@ -94,14 +97,18 @@ public class LlmReviewService
             temperature
         };
 
+        // Create an HttpClient from the factory. If you want a base address or default headers
+        // configured centrally, register a named/typed client in Program.cs.
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
+        // Be explicit about the endpoint shape we expect; if OpenAI changes API shape we'll catch it here.
         var response = await client.PostAsJsonAsync(
             "https://api.openai.com/v1/chat/completions",
             requestBody
         );
 
+        // Let callers see non-success via exception. We catch higher up and decide fallback.
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadFromJsonAsync<OpenAIResponse>();
@@ -120,6 +127,7 @@ public class LlmReviewService
         RiskAssessmentResult assessment,
         string apiKey)
     {
+        // Anthropic/Claude configuration is similar but uses api-key header naming conventions.
         var model = _config["LLM:Model"] ?? "claude-3-5-sonnet-20241022";
         var maxTokens = _config.GetValue<int>("LLM:MaxTokens", 500);
         var temperature = _config.GetValue<double>("LLM:Temperature", 0.7);
@@ -162,8 +170,9 @@ public class LlmReviewService
 
     private string BuildPrompt(RiskContext context, RiskAssessmentResult assessment)
     {
+        // similar type also used in java
         var sb = new StringBuilder();
-
+        // prompting logic
         sb.AppendLine("You are reviewing a pull request. Provide a concise, professional code review comment.");
         sb.AppendLine();
         sb.AppendLine("PR DETAILS:");
@@ -233,6 +242,7 @@ public class LlmReviewService
             }
         }
 
+        // more prompting
         sb.AppendLine();
         sb.AppendLine("TASK:");
         sb.AppendLine("Write a professional PR review comment (200-300 words) that:");

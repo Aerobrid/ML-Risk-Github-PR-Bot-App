@@ -59,16 +59,22 @@ If you want the dev server to proxy API calls to the backend without CORS change
 }
 ```
 
-Docker / Docker Compose
+## Testing for frontend
+
+```
+npm test -- --watch=false
+```
+
+## Docker / Docker Compose
 
 If you prefer containers, the repository has a `docker-compose.yml` that can run the full stack. Ensure the backend and ML service are reachable by the frontend container (adjust URLs or environment variables as needed).
 
-Common tasks
+## Common tasks
 
-- Run unit tests: `npm test` or `ng test`
+- Running app: `npm start` or `ng serve`
 - Generate component: `ng generate component <name>`
 
-Troubleshooting
+## Troubleshooting
 
 - API 401/403: ensure the backend is running and the frontend `apiBaseUrl` points to the correct backend address.
 - CORS errors: either enable CORS on the backend or use a local proxy (`proxy.conf.json`) during development.

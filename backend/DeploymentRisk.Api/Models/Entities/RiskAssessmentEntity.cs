@@ -1,5 +1,7 @@
 namespace DeploymentRisk.Api.Models.Entities;
 
+// database entity
+// represents a table in DB where each row is a risk assessment
 public class RiskAssessmentEntity
 {
     public Guid Id { get; set; }

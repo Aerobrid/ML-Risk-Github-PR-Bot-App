@@ -2,10 +2,14 @@ using DeploymentRisk.Api.Models;
 
 namespace DeploymentRisk.Api.Services.Scoring;
 
+// scorer class
 public class MLModelScorer : IRiskScorer
 {
+    // to call ML Service over http
     private readonly MlClient _mlClient;
+    // to read app settings / environment variables
     private readonly IConfiguration _config;
+    // to write logs relating to class
     private readonly ILogger<MLModelScorer> _logger;
 
     public MLModelScorer(MlClient mlClient, IConfiguration config, ILogger<MLModelScorer> logger)
@@ -23,6 +27,7 @@ public class MLModelScorer : IRiskScorer
     {
         try
         {
+            // Build ML Request
             var request = new RiskRequest
             {
                 CommitCount = context.CommitCount,
@@ -33,10 +38,12 @@ public class MLModelScorer : IRiskScorer
                 Files = context.Files
             };
 
+            // Call ML Service
             var prediction = await _mlClient.PredictAsync(request);
 
             if (prediction == null)
             {
+                // if ML Service responds but with no data
                 return new ScorerResult
                 {
                     Score = 0.5,
@@ -45,6 +52,7 @@ public class MLModelScorer : IRiskScorer
                 };
             }
 
+            // if ML Service responds with data
             return new ScorerResult
             {
                 Score = prediction.RiskScore,
@@ -55,6 +63,7 @@ public class MLModelScorer : IRiskScorer
         }
         catch (Exception ex)
         {
+            // any failure gets a fallback 0/low risk score
             _logger.LogError(ex, "Failed to get ML prediction");
             return new ScorerResult
             {

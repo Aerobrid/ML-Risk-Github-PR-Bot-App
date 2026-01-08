@@ -103,6 +103,7 @@ public class RuleBasedScorer : IRiskScorer
         details["timestamp"] = context.Timestamp;
         details["finalScore"] = score;
 
+        // Log Summary
         _logger.LogInformation("Rule-based scoring completed: {Score} ({Level}) with {FactorCount} risk factors",
             score, level, riskFactors.Count);
 

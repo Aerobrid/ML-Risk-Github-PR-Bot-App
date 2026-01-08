@@ -1,17 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using DeploymentRisk.Api.Services;
-using Octokit;
 
 namespace DeploymentRisk.Api.Controllers;
 
 [ApiController]
 [Route("api/github")]
+// lists GitHub repositories where the app is installed
 public class GitHubRepositoriesController : ControllerBase
 {
     private readonly GitHubClientService _github;
     private readonly IConfiguration _config;
     private readonly ILogger<GitHubRepositoriesController> _logger;
 
+    // inject github client, app config, and logger
     public GitHubRepositoriesController(
         GitHubClientService github,
         IConfiguration config,
@@ -22,6 +23,7 @@ public class GitHubRepositoriesController : ControllerBase
         _logger = logger;
     }
 
+    // fetch all repos from all app installations (dynamic + configured)
     [HttpGet("repositories")]
     public async Task<IActionResult> GetInstalledRepositories()
     {
@@ -87,6 +89,7 @@ public class GitHubRepositoriesController : ControllerBase
         }
     }
 
+    // debug endpoint to inspect github app config and installation details
     [HttpGet("debug")]
     public async Task<IActionResult> Debug()
     {
@@ -118,6 +121,7 @@ public class GitHubRepositoriesController : ControllerBase
     }
 }
 
+// github repo metadata returned by the api
 public class GitHubRepositoryInfo
 {
     public long Id { get; set; }

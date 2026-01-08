@@ -115,6 +115,62 @@ Create a `.env` file in the repository root (or set these environment variables)
 The API will be available at `http://localhost:5000`.
 Swagger documentation is available at `http://localhost:5000/swagger`.
 
+## Testing
+
+The backend uses **xUnit** and **Moq** for unit testing.
+
+### Running Tests
+
+To run all tests:
+```powershell
+cd backend/Tests/DeploymentRisk.Api.Tests
+dotnet test
+```
+
+Or from the solution root:
+```powershell
+dotnet test backend/Tests/DeploymentRisk.Api.Tests/DeploymentRisk.Api.Tests.csproj
+```
+
+Or running Tests with Verbose Output:
+```powershell
+dotnet test --verbosity detailed
+```
+
+### Running Specific Test
+
+```powershell
+dotnet test --filter "ClassName.MethodName"
+```
+
+### Test Structure
+
+- Tests are located in `backend/Tests/DeploymentRisk.Api.Tests/`
+- Use Moq to mock dependencies (repositories, services, HTTP clients).
+- Follow the AAA pattern (Arrange, Act, Assert) for test clarity.
+
+### Example Test
+
+```csharp
+[Fact]
+public async Task GetRecentAssessments_ReturnsAssessments_WhenDataExists()
+{
+    // Arrange
+    var mockRepo = new Mock<IRiskRepository>();
+    mockRepo.Setup(r => r.GetRecentAssessmentsAsync(It.IsAny<int>()))
+        .ReturnsAsync(new List<RiskAssessmentResult> { /* test data */ });
+    
+    var controller = new DashboardController(mockRepo.Object, _logger);
+
+    // Act
+    var result = await controller.GetRecentAssessments(count: 10);
+
+    // Assert
+    var okResult = Assert.IsType<OkObjectResult>(result);
+    Assert.NotNull(okResult.Value);
+}
+```
+
 ## Database
 
 The project uses Entity Framework Core.

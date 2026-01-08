@@ -1,5 +1,6 @@
 namespace DeploymentRisk.Api.Models;
 
+// context needed to calculate risk of repo/branch/PR
 public class RiskContext
 {
     public long InstallationId { get; set; }

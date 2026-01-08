@@ -1,13 +1,15 @@
 using System.IO;
+// for loadin in env vars
 using DotNetEnv;
+// import other app code/functionalities into program
 using DeploymentRisk.Api.Data;
 using DeploymentRisk.Api.Repositories;
 using DeploymentRisk.Api.Services;
 using DeploymentRisk.Api.Services.Scoring;
 using Microsoft.EntityFrameworkCore;
 
-// Load .env (if present) so environment variables override appsettings.json.
-// Looks for .env in the current directory and a few parent folders (repo root).
+// Load .env (if present) so environment variables override appsettings.json
+// this block looks for .env in the current directory + repo root
 try
 {
     var candidates = new[] { ".env", Path.Combine("..", ".env"), Path.Combine("..","..", ".env"), Path.Combine("..","..","..", ".env") };
@@ -45,14 +47,20 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins("http://localhost:4200", "http://localhost:80")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
 // Database configuration (optional)
 var connectionString = builder.Configuration.GetValue<string>("Database:ConnectionString");
 
+/*
+ If a connection string is present we register EF Core with SQL Server
+ and wire up the SQL-backed repository implementations.
+ Otherwise fall back to lightweight in-memory/no-op repositories used
+ for development or when persistence is not required 
+*/
 if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContext<RiskDbContext>(options =>
@@ -100,24 +108,31 @@ if (!string.IsNullOrEmpty(connectionString))
     var db = scope.ServiceProvider.GetRequiredService<RiskDbContext>();
     try
     {
+        // Apply any pending EF Core migrations to the target database
         await db.Database.MigrateAsync();
         Console.WriteLine("✅ Database migrations applied");
     }
     catch (Exception ex)
     {
+        // Migrations can fail for many reasons (network, permissions, connectionstring without actual DB instance, etc.)
         Console.WriteLine($"⚠️  Database migration failed: {ex.Message}");
         try
         {
+            // EnsureCreated fallback will create the schema directly if missing
+            // It does NOT run migrations and is not suitable for complex updates
+            // TODO: Work on this logic more
             var created = await db.Database.EnsureCreatedAsync();
             Console.WriteLine(created ? "✅ Database created (EnsureCreated)" : "ℹ️  Database already exists (EnsureCreated)");
         }
         catch (Exception inner)
         {
+            // If EnsureCreated also fails, surface the error so operator can act
             Console.WriteLine($"❌ Failed to create database with EnsureCreated: {inner.Message}");
         }
     }
 }
 
+// swagger ui for dev work
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -125,7 +140,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-// Disable HTTPS redirection for webhooks (ngrok handles HTTPS)
+
+// Disable HTTPS redirection for webhooks (ngrok handles HTTPS if running locally)
+// TODO: if NOT running locally, work on this
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
