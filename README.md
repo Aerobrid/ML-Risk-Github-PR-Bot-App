@@ -307,3 +307,7 @@ kubectl set image deployment/backend backend=ghcr.io/your/repo-backend:tag -n ri
    - Setting this app up on Linode is much, much easier than setting it up on AWS EKS.
    - LKE LoadBalancers are billed and IP allocation can take a minute. I used **NodeBalancer** on linode console instead.
    - If you prefer a stable hostname without managing certs yourself, use a cloud Load Balancer + DNS + managed certs or a platform ingress add-on that provisions TLS automatically.
+
+## Jenkins
+- Added a Jenkinsfile for CI integration
+- More work needed for docker-compose to work, therefore I added it as an optional stage (by default will not run when building with parameters)
