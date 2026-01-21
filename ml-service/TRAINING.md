@@ -24,6 +24,8 @@ pip install scikit-learn
 ## 2. Training with Real Data 
 
 To make the model accurate to your specific project, you should train it on your repository's history.
+If you do not have a repo with 500+ merged PRs, then the synthetic data works well.
+
 
 1.  **Set your GitHub Token:**
     ```bash

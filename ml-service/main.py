@@ -1,12 +1,18 @@
+# FastAPI: web framework to build APIs, handle HTTP req/res, routing, etc.
 from fastapi import FastAPI, UploadFile, File, HTTPException
+# Pydantic: validates and parses request/response data
+# converts raw JSON <=> strongly-typed Python objects (used by FastAPI)
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Tuple
+# filesystem utilities (paths, directories, etc.)
 import os
+# high-level file operations (copy files to disk and such)
 import shutil
 
+# title parameter is metadata that shows up in Swagger UI
 app = FastAPI(title="ML Risk Service")
 
-# models dir for trained models
+# models directory for trained models
 MODELS_DIR = "models"
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -14,22 +20,30 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 class RiskRequest(BaseModel):
     commitCount: int
     linesChanged: int
+    # 0.0-1.0
     testPassRate: float
-    hourOfDay: int
-    dayOfWeek: int
+    # 0-23
+    hourOfDay: int 
+    # 0-6
+    dayOfWeek: int          
 
 # Response model matches RiskResponse with additional details
 class RiskResponse(BaseModel):
     riskScore: float
+    # LOW, MEDIUM, HIGH, CRITICAL
     riskLevel: str
+    # further info on how score was calculated (what scorers were used)
     details: Dict[str, float] = Field(default_factory=dict)
 
 class SecurityScanRequest(BaseModel):
+    # filenames
     files: List[str]
-    content_snippets: List[str] # Simplified for prototype
+    # simple use-case for prototype
+    content_snippets: List[str] 
 
 class SecurityScanResponse(BaseModel):
     status: str
+    # list of issues
     vulnerabilities: List[Dict[str, str]]
 
 def calculate_risk_score(request: RiskRequest) -> Tuple[float, Dict[str, float]]:
@@ -69,8 +83,10 @@ def calculate_risk_score(request: RiskRequest) -> Tuple[float, Dict[str, float]]
     return score, details
 
 # Predict deployment risk based on metrics
+# converts response to RiskResponse for backend to receive
 @app.post("/predict", response_model=RiskResponse)
 def predict(request: RiskRequest):
+    # calculate score
     score, details = calculate_risk_score(request)
 
     # Determine risk level
@@ -88,6 +104,8 @@ def predict(request: RiskRequest):
         riskLevel=level,
         details=details
     )
+
+# TBD endpoints
 
 @app.post("/models/upload")
 async def upload_model(file: UploadFile = File(...), name: Optional[str] = None, type: str = "ml-model"):
@@ -124,7 +142,6 @@ def health():
 def security_scan(request: Optional[SecurityScanRequest] = None):
     """
     Simulated security scan. 
-    - Use tools like Bandit, Semgrep, or CodeQL in future
     """
     vulnerabilities = []
     
